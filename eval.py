@@ -1,11 +1,16 @@
-import openai
+import settings 
+from openai import OpenAI
 from bert_score import score
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer, util
-
+from typing import List, Dict
+import numpy as np
 
 # OpenAI API 키 설정
-openai.api_key = 'API 입력ㅎㅇㅇ'
+#openai.api_key = 'API 입력ㅎㅇㅇ'
+client = OpenAI(
+    api_key=settings.OPENAI_API_KEY,
+)
 # 1. 원자적 사실 추출 함수 (OpenAI API 사용)
 def extract_atomic_facts(text):
     messages = [
@@ -13,13 +18,13 @@ def extract_atomic_facts(text):
         {"role": "user", "content": f"다음 텍스트에서 각 문장의 핵심 정보를 담은 최소 단위 정보를 추출하세요 : \n\n{text}\n\n각 사실을 한 줄씩 나열하세요"
     }
     ]
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=messages,
         max_tokens=150,
         temperature=0
     )
-    facts = response.choices[0].message['content'].strip().split('\n')
+    facts = response.choices[0].message.content.strip().split('\n')
     return [fact.strip() for fact in facts if fact.strip()]
 
 # 2. 원자적 사실 간 비교 함수 (BERTScore 사용)
@@ -65,7 +70,7 @@ def calculate_bertscore(ref_summaries, model_summaries, lang='ko'):
     P, R, F1 = score(model_summaries, ref_summaries, lang=lang)
     return F1.mean().item()
 
-#5. 간결성(문장 중복 정도)
+#6. 간결성(문장 중복 정도)
 def evaluate_redundancy_with_embeddings(summary_text):
     # Sentence-BERT 모델 로드
     model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
@@ -86,8 +91,94 @@ def evaluate_redundancy_with_embeddings(summary_text):
     conciseness_score = max(0, 100 - redundancy_penalty)
     return conciseness_score
 
-# 6. 자동 평가 함수
-def evaluate_model(dataset):
+ 
+# 7. GPTScore 구현
+class GPTScoreEvaluator:
+    def __init__(self, api_key: str):
+        self.client = OpenAI(api_key=api_key)
+        
+    def get_completion(
+        self,
+        messages: List[Dict[str, str]],
+        model: str = "gpt-3.5-turbo",
+        max_tokens=500,
+        temperature=0,
+        stop=None,
+        seed=123,
+        tools=None,
+        logprobs=True,
+        top_logprobs=5
+    ) -> dict:
+        """
+        OpenAI API 호출을 통해 모델의 응답을 가져오는 함수.
+        """
+        params = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stop": stop,
+            "seed": seed,
+            "logprobs": logprobs,
+            "top_logprobs": top_logprobs,
+        }
+        if tools:
+            params["tools"] = tools
+
+        completion = self.client.chat.completions.create(**params)
+        return completion
+
+    def gpt_logprob_score(self, text: str, reference: str, task_desc: str, aspect_desc: str, model="gpt-3.5-turbo") -> float:
+        """
+        로그 확률 기반의 GPTScore를 계산하는 함수.
+        """
+        # 평가 프롬프트 생성
+        prompt = (
+            f"{task_desc}\n"
+            f"평가 기준: {aspect_desc}\n"
+            f"원문 텍스트: {reference}\n"
+            f"요약 텍스트: {text}\n"
+            "위 요약의 품질을 평가하기 위한 로그 확률을 반환합니다."
+        )
+
+        # OpenAI API 호출을 통한 응답과 로그 확률 수집
+        response = self.get_completion(
+            messages=[{"role": "user", "content": prompt}],
+            model=model,
+            logprobs=True
+        )
+
+        # 로그 확률 추출
+        logprobs_values = [
+            logprob.logprob for logprob in response.choices[0].logprobs.content[0].top_logprobs
+        ]
+
+        # 평균 로그 확률 계산
+        average_logprob = np.mean(logprobs_values)
+        return average_logprob
+
+    def evaluate_summary_logprob(self, text: str, reference: str) -> Dict[str, float]:
+        """
+        여러 기준에 대해 로그 확률 기반으로 요약의 품질을 평가하는 함수.
+        """
+        task_desc = "자영업자를 위한 정책 요약 생성"
+        
+        criteria = {
+            "Relevance": "요약이 원문과 얼마나 관련이 있는지",
+            "Informativeness": "요약이 원문에서 중요한 아이디어를 얼마나 잘 포착했는지",
+            "Understandability": "자영업자 입장에서 이해하기 쉬운지",
+            "Specificity": "요약이 원문에 구체적으로 맞춰져 있는지",
+            "Engagement": "독자의 관심을 끌고 자영업자의 행동을 유도할 수 있는지"
+        }
+        
+        scores = {}
+        for aspect, desc in criteria.items():
+            score = self.gpt_logprob_score(text, reference, task_desc, desc)
+            scores[aspect] = score
+        return scores
+
+# 8. 자동 평가 함수
+def evaluate_model(dataset, api_key):
     index = 0
     while index < len(dataset):
         item = dataset[index]
@@ -107,26 +198,23 @@ def evaluate_model(dataset):
         bertscore = calculate_bertscore(ref_summary, custom_summary) 
         gen_concise = evaluate_redundancy_with_embeddings(custom_summary)
         ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
-
-
+        #추가된 GPTScore
+        evaluator = GPTScoreEvaluator(api_key=api_key)
+        evaluation_scores = evaluator.evaluate_summary_logprob(custom_summary, document)
         # 최종 평가 결과 출력 
         print(f"\n평가 결과:")
         print(f"데이터 요약vs모델 요약 BERTScore: {bertscore:.2f}")
         print(f"사실 매칭 점수: model-{gen_match_acc:.2f} || ref-{ref_match_acc:.2f}")
         print(f"논리적 일관성 점수: model-{gen_logical_consist:.2f} || ref-{ref_logical_consist:.2f}")
         print(f"간결성 점수: model-{gen_concise:.2f} || ref-{ref_concise:.2f}")
-
-
+        print("평가 점수 (로그 확률 기반):", evaluation_scores)
+        
         continue_evaluation = input("\nDo you want to evaluate another summary? (Enter 'y' for yes, any other key to stop): ")
         if continue_evaluation.lower() != 'y':
             print("Evaluation session ended.")
             break
         index += 1
- 
-    return bertscore
 
-# 7. 데이터셋 로드 및 평가 실행
+# 9. 데이터셋 로드 및 평가 실행
 dataset = load_dataset("daekeun-ml/naver-news-summarization-ko", cache_dir='C:\\Users\\82104\\Desktop\\RAG_테크닉\\허깅페이스', split="test")
-bertscore_result, factual_consistency_result = evaluate_model(dataset)
-print(f"BERTScore for model-generated summaries: {bertscore_result}")
-print(f"Factual Consistency Score for model-generated summaries: {factual_consistency_result}")
+evaluate_model(dataset, client.api_key)
