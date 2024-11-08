@@ -161,14 +161,15 @@ class GPTScoreEvaluator:
         """
         여러 기준에 대해 로그 확률 기반으로 요약의 품질을 평가하는 함수.
         """
-        task_desc = "자영업자를 위한 정책 요약 생성"
+        task_desc = "다음 텍스트를 요약하고 자영업자를 위한 정책 정보 제공에 맞게 조정하세요."
+
         
         criteria = {
-            "Relevance": "요약이 원문과 얼마나 관련이 있는지",
-            "Informativeness": "요약이 원문에서 중요한 아이디어를 얼마나 잘 포착했는지",
-            "Understandability": "자영업자 입장에서 이해하기 쉬운지",
-            "Specificity": "요약이 원문에 구체적으로 맞춰져 있는지",
-            "Engagement": "독자의 관심을 끌고 자영업자의 행동을 유도할 수 있는지"
+            "Relevance": "요약이 원문과 얼마나 관련이 있는지 확인",
+            "Informativeness": "요약이 원문에서 중요한 아이디어를 얼마나 잘 포착했는지 확인",
+            "Understandability": "요약이 자영업자가 이해하기 쉽게 작성되었는지 확인",
+            "Specificity": "요약이 구체적인 정보를 제공하고 있는지 확인",
+            "Engagement": "요약이 독자의 관심을 끌고 자영업자의 행동을 유도할 수 있는지 확인"
         }
         
         scores = {}
