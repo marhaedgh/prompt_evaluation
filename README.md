@@ -21,7 +21,9 @@ gptscore_logprob은 GPTScore 평가 방식만 따로 빼둔 것입니다.
 ### 필요한 패키지 설치
 
 
-##requirements.txt
+###개발환경
+requirements.txt 다운받아서 사용
+pip install -r requirements.txt
 
 ##사용법
 API 키 설정: 따로 settings.py 파일을 만들어 OpenAI API 키를 추가합니다.  
