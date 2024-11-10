@@ -97,8 +97,7 @@ def evaluate_redundancy_with_embeddings(summary_text):
     embeddings = model.encode(sentences, convert_to_tensor=True)
 
     # 코사인 유사도를 기반으로 유사성 측정
-    redundancy_penalty = 0
-    print("왜이래~~")
+    redundancy_penalty = 0 
     for i in range(len(sentences)):
         for j in range(i + 1, len(sentences)):
             similarity = util.pytorch_cos_sim(embeddings[i], embeddings[j]).item()
@@ -209,7 +208,8 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client):
     index = 0
     scores_storage = []
-    while index < len(dataset):
+    while index<50:#index < len(dataset):
+        print(index)
         item = dataset[index]
         document = item['document']
         ref_summary = item['summary']
