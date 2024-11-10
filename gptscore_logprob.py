@@ -99,7 +99,11 @@ class GPTScoreEvaluator:
 
 # 사용 예제
 api_key = settings.OPENAI_API_KEY
-evaluator = GPTScoreEvaluator(api_key=api_key)
+client = OpenAI(
+    api_key=settings.OPENAI_API_KEY,
+)
+print(client.api_key)
+evaluator = GPTScoreEvaluator(api_key=client.api_key)
 
 reference_text = "아이엘사이언스의 자회사 아이트로닉스는 차량용 복합기능형 졸음 방지 단말기 특허를 출원했다고 4일 밝혔다..."
 summary_text = "아이엘사이언스의 자회사 아이트로닉스가 차량용 졸음 방지 단말기 특허를 출원했습니다..."

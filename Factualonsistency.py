@@ -18,7 +18,7 @@ class FactualConsistencyEvaluator:
             {"role": "user", "content": f"다음 텍스트에서 각 문장의 핵심 정보를 담은 최소 단위 정보를 추출하세요:\n\n{text}\n\n각 사실을 한 줄씩 나열하세요"}
         ]
         response = self.client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=150,
             temperature=0
