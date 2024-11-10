@@ -213,6 +213,8 @@ def evaluate_model(dataset, client):
         document = item['document']
         ref_summary = item['summary']
         print(index)
+        print(client.api_key)
+        print(client)
         evaluator = FactualConsistencyEvaluator(client)
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
@@ -221,7 +223,9 @@ def evaluate_model(dataset, client):
         print("concise")
         bertscore = calculate_bertscore(document, ref_summary)
         #추가된 GPTScore
-        evaluator = GPTScoreEvaluator(client)
+        print(client.api_key)
+        evaluator = GPTScoreEvaluator(client.api_key)
+
         print("bertscore")
         GPTscore = evaluator.evaluate_summary_logprob(ref_summary, document)
         print('GPTscore')
