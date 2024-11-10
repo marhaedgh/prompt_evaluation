@@ -21,9 +21,10 @@ gptscore_logprob은 GPTScore 평가 방식만 따로 빼둔 것입니다.
 ### 필요한 패키지 설치
 
 
-```bash
-pip install openai bert_score datasets sentence_transformers numpy
-```
+##개발환경  
+requirements.txt 다운받아서 사용  
+pip install -r requirements.txt  
+
 ##사용법
 API 키 설정: 따로 settings.py 파일을 만들어 OpenAI API 키를 추가합니다.  
 데이터셋 준비: Hugging Face에서 데이터셋을 로드하고 평가할 데이터셋을 설정합니다. cache_dir 매개변수에 데이터를 저장할 위치를 넣습니다. 개인 로컬이나 클라우드 어디든.??
