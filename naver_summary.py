@@ -98,6 +98,7 @@ def evaluate_redundancy_with_embeddings(summary_text):
 
     # 코사인 유사도를 기반으로 유사성 측정
     redundancy_penalty = 0
+    print("왜이래~~")
     for i in range(len(sentences)):
         for j in range(i + 1, len(sentences)):
             similarity = util.pytorch_cos_sim(embeddings[i], embeddings[j]).item()
@@ -212,38 +213,27 @@ def evaluate_model(dataset, client):
         item = dataset[index]
         document = item['document']
         ref_summary = item['summary']
-        print(index)
-        print(client.api_key)
-        print(client)
         evaluator = FactualConsistencyEvaluator(client)
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
-        print("accuracy")
         ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
-        print("concise")
         bertscore = calculate_bertscore(document, ref_summary)
-        #추가된 GPTScore
-        print(client.api_key)
         evaluator = GPTScoreEvaluator(client.api_key)
 
-        print("bertscore")
         GPTscore = evaluator.evaluate_summary_logprob(ref_summary, document)
-        print('GPTscore')
         scores={}
         scores["accuracy"] = ref_accuracy
         scores["consistency"] = ref_logical_consistency
         scores["conciseness"] = ref_concise
         scores["bertscore"] = bertscore
-        print(scores)
         for i,j in GPTscore.items():
             scores[i] = j
-        print(scores)
         scores_storage.append(scores)
-        continue_evaluation = input("\nDo you want to evaluate another summary? (Enter 'y' for yes, any other key to stop): ")
-        if continue_evaluation.lower() != 'y':
-            print("Evaluation session ended.")
-            break
         index += 1
+    df = pd.DataFrame(scores_storage)
+    df.to_csv("evaluation_scores.csv", index=False)
+    print("CSV 파일에 모든 평가 점수를 저장했습니다.")
+
 
 # 9. 데이터셋 로드 및 평가 실행
 dataset = load_dataset("daekeun-ml/naver-news-summarization-ko", cache_dir='C:\\Users\\82104\\Desktop\\RAG_테크닉\\허깅페이스', split="test")
