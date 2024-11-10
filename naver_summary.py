@@ -22,7 +22,7 @@ class FactualConsistencyEvaluator:
             {"role": "user", "content": f"다음 텍스트에서 각 문장의 핵심 정보를 담은 최소 단위 정보를 추출하세요:\n\n{text}\n\n각 사실을 한 줄씩 나열하세요"}
         ]
         response = self.client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=150,
             temperature=0
@@ -216,17 +216,21 @@ def evaluate_model(dataset, client):
         evaluator = FactualConsistencyEvaluator(client)
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
+        print("accuracy")
         ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
+        print("concise")
         bertscore = calculate_bertscore(document, ref_summary)
         #추가된 GPTScore
         evaluator = GPTScoreEvaluator(client)
+        print("bertscore")
         GPTscore = evaluator.evaluate_summary_logprob(ref_summary, document)
-
+        print('GPTscore')
         scores={}
         scores["accuracy"] = ref_accuracy
         scores["consistency"] = ref_logical_consistency
         scores["conciseness"] = ref_concise
         scores["bertscore"] = bertscore
+        print(scores)
         for i,j in GPTscore.items():
             scores[i] = j
         print(scores)
