@@ -6,6 +6,8 @@ from sentence_transformers import SentenceTransformer, util
 from typing import List, Dict, Tuple
 import numpy as np
 import pandas as pd
+from datetime import datetime
+import os 
 
 # OpenAI API 키 설정
 client = OpenAI(
@@ -208,7 +210,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client):
     index = 0
     scores_storage = []
-    while index<50:#index < len(dataset):
+    while index<100:#index < len(dataset):
         print(index)
         item = dataset[index]
         document = item['document']
@@ -216,22 +218,34 @@ def evaluate_model(dataset, client):
         evaluator = FactualConsistencyEvaluator(client)
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
-        ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
-        bertscore = calculate_bertscore(document, ref_summary)
+        ref_accuracy = round(ref_accuracy, 2)
+        ref_logical_consistency = round(ref_logical_consistency,2)
+        ref_concise = round(evaluate_redundancy_with_embeddings(ref_summary), 2)
+        bertscore = round(calculate_bertscore(document, ref_summary), 2)
         evaluator = GPTScoreEvaluator(client.api_key)
 
         GPTscore = evaluator.evaluate_summary_logprob(ref_summary, document)
         scores={}
-        scores["accuracy"] = ref_accuracy
-        scores["consistency"] = ref_logical_consistency
-        scores["conciseness"] = ref_concise
-        scores["bertscore"] = bertscore
+        scores["accuracy"] = round(ref_accuracy,2)
+        scores["consistency"] = round(ref_logical_consistency,2)
+        scores["conciseness"] = round(ref_concise,2)
+        scores["bertscore"] = round(bertscore,2)
         for i,j in GPTscore.items():
             scores[i] = j
         scores_storage.append(scores)
         index += 1
+    
+    # 오늘 날짜로 폴더 생성
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    directory = f"evaluation_scores/{date_str}"
+    os.makedirs(directory, exist_ok=True)
+    # 파일 번호 확인 및 넘버링
+    file_count = len([f for f in os.listdir(directory) if f.startswith("naver_summary_scores_")]) + 1
+    file_name = f"naver_summary_scores_{file_count}.csv"
+    file_path = os.path.join(directory, file_name)
     df = pd.DataFrame(scores_storage)
-    df.to_csv("evaluation_scores.csv", index=False)
+    # 파일 저장
+    df.to_csv(file_path, index=False)
     print("CSV 파일에 모든 평가 점수를 저장했습니다.")
 
 
