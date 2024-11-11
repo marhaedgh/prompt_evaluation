@@ -244,12 +244,13 @@ def evaluate_model(dataset, client: OpenAI):
 - 독자의 관심을 끌 만한 인상적인 첫 단락
 - 새로운 용어는 간단하게 설명
 - 1000자 이내의 글자 수 및 짧은 단락 유지"""},
-            {"role": "user", "content": """
+            {"role": "user", "content": f"""
              *요청*
 1. 문서 요약을 수행할 때 독자(개인사업자)가 가장 관심을 가질 만한 포인트에 집중하세요. 
 2. 내용을 명확하게 전달하되, 독자의 흥미를 유발하기 위해 일상에서의 비유나 예시를 포함해 주세요.
 3. 중요한 정보가 구체적으로 이해될 수 있도록 관련 배경 지식을 간단히 덧붙여 주세요.
-4. 독자가 글의 내용을 통해 어떤 행동을 해야하는지 구체적으로 가이드라인을 제시해주세요. 예시(
+4. 독자가 글의 내용을 통해 어떤 행동을 해야하는지 구체적으로 가이드라인을 제시해주세요.\n
+요약 텍스트: {document}
 """
              }
         ]
@@ -260,8 +261,11 @@ def evaluate_model(dataset, client: OpenAI):
             temperature=0.5
         )
         ref_summary = response.choices[0].message.content
+        print(ref_summary)
         # 평가 수행
-        ref_accuracy, ref_logical_consistency = round(evaluator.factual_consistency_score(document, ref_summary), 2)
+        ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
+        ref_accuracy = round(ref_accuracy, 2)
+        ref_logical_consistency = round(ref_logical_consistency,2)
         ref_concise = round(evaluate_redundancy_with_embeddings(ref_summary), 2)
         bertscore = round(calculate_bertscore(document, ref_summary), 2)
         evaluator = GPTScoreEvaluator(client.api_key)
@@ -281,13 +285,11 @@ def evaluate_model(dataset, client: OpenAI):
     date_str = datetime.now().strftime("%Y-%m-%d")
     directory = f"evaluation_scores/{date_str}"
     os.makedirs(directory, exist_ok=True)
-
     # 파일 번호 확인 및 넘버링
-    file_count = len([f for f in os.listdir(directory) if f.startswith("evaluation_scores_")]) + 1
+    file_count = len([f for f in os.listdir(directory) if f.startswith("GPT_summary_scores_")]) + 1
     file_name = f"GPT_summary_scores_{file_count}.csv"
     file_path = os.path.join(directory, file_name)
     df = pd.DataFrame(scores_storage)
-
     # 파일 저장
     df.to_csv(file_path, index=False)
     print("CSV 파일에 모든 평가 점수를 저장했습니다.")
