@@ -30,7 +30,7 @@ class FactualConsistencyEvaluator:
     def compare_atomic_facts(self, ref_facts: List[str], gen_facts: List[str]) -> List[Tuple[str, str]]:
         matched_facts = []
         for gen_fact in gen_facts:
-            P, R, F1 = score([gen_fact] * len(ref_facts), ref_facts, lang="ko")
+            P, R, F1 = score([gen_fact] * len(ref_facts), ref_facts, lang="ko", device='cuda')
             print(P,R,F1)
             max_score_idx = F1.argmax()
             max_score = F1[max_score_idx].item()
@@ -80,7 +80,7 @@ class FactualConsistencyEvaluator:
 def evaluate_model(dataset, client):
     print(client, type(client))
     evaluator = FactualConsistencyEvaluator(client)
-    
+    print("전체 데이터 길이:", len(dataset))
     for item in dataset:
         document = item['document']
         ref_summary = item['summary']
