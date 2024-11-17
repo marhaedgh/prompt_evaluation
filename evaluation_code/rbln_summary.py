@@ -296,9 +296,9 @@ def evaluate_model(dataset, client: OpenAI):
         if '{prompt}' in item['content']:
             item['content'] = item['content'].replace('{prompt}', ', '.join(str(msg) for msg in messages))
         if '{scores}' in item['content']:
-            item['content'] = item['content'].replace('{scores}', scores_storage)
+            item['content'] = item['content'].replace('{scores}', json.dumps(scores_storage, ensure_ascii=False, indent=4))
         if '{prompt}' in item['content']:
-            item['content'] = item['content'].replace('{avg_score}', avg_integrate)
+            item['content'] = item['content'].replace('{avg_score}', str(avg_integrate))
         feedback_message.append(item)
     print("feedback prompt:", feedback_message)
     extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
