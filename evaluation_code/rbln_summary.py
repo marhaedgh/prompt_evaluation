@@ -253,8 +253,7 @@ def evaluate_model(dataset, client: OpenAI):
         extract_response = Settings.llm.complete(extract_request, timeout=30)
         print(extract_response)
         # 응답 처리
-        extracted_info = str(extract_response)
-        ref_summary = extracted_info
+        ref_summary = str(extract_response)
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
         ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
@@ -285,6 +284,26 @@ def evaluate_model(dataset, client: OpenAI):
     df.loc['avg']=avg_row
     avg_integrate=sum(avg_row)/len(avg_row)
 
+    feedback_json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/feedback.json"
+    with open(feedback_json_path, 'r', encoding='utf-8') as file:
+        feedback_json_data = json.load(file)
+
+    feedback_message = []
+    for item in feedback_json_data:
+        # content에서 {prompt}를 document_content로 대체
+        if '{prompt}' in item['content']:
+            item['content'] = item['content'].replace('{prompt}', messages)
+        if '{scores}' in item['content']:
+            item['content'] = item['content'].replace('{scores}', scores_storage)
+        if '{prompt}' in item['content']:
+            item['content'] = item['content'].replace('{avg_score}', avg_integrate)
+        feedback_message.append(item)
+    print("feedback prompt:", feedback_message)
+    extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
+    # 비동기 요청
+    extract_feedback = Settings.llm.complete(extract_request, timeout=30)
+    print("feedback:",extract_feedback)
+    
     # 파일 저장
     df.to_csv(file_path, index=False)
     print("CSV 파일에 모든 평가 점수를 저장했습니다.")
@@ -297,9 +316,9 @@ def evaluate_model(dataset, client: OpenAI):
         'avg': avg_integrate,
         'running_time': f"{measure_time_end:.4f}",        # 새로운 실행 시간 (예: 0초)
         'file_name': date_str + file_name,  # 새로운 파일 이름
+        'feedback': extract_feedback,
         'prompt': str(messages)   # 새로운 프롬프트 내용
     }
-
     # 파일이 존재하고 비어 있지 않은지 확인
     if os.path.exists(graph_file_path) and os.path.getsize(graph_file_path) > 0:
         try:
