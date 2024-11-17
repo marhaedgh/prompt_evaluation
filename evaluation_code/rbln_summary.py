@@ -267,7 +267,7 @@ def evaluate_model(dataset, client: OpenAI):
         scores["conciseness"] = round(ref_concise,2)
         scores["bertscore"] = round(bertscore,2)*100
         for i,j in GPTscore.items():
-            scores[i] = j
+            scores[i] = round(j,2)
         scores_storage.append(scores)
         index += 1
     
@@ -282,7 +282,7 @@ def evaluate_model(dataset, client: OpenAI):
     df = pd.DataFrame(scores_storage)
     avg_row=df.apply(lambda col: col.sum()/len(col), axis=0)
     df.loc['avg']=avg_row
-    avg_integrate=sum(avg_row)/len(avg_row)
+    avg_integrate=round(sum(avg_row)/len(avg_row), 2)   
 
     feedback_json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/feedback.json"
     with open(feedback_json_path, 'r', encoding='utf-8') as file:
