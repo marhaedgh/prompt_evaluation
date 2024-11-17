@@ -239,14 +239,14 @@ def evaluate_model(dataset, client: OpenAI):
         json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/summarization_korean.json"
         with open(json_path, 'r', encoding='utf-8') as file:
             json_data = json.load(file)
-
+        
         messages = []
         for item in json_data:
             # content에서 {document}를 document_content로 대체
-            if '{document}' in item['content']:
-                item['content'] = item['content'].replace('{document}', document)
+            if '{content}' in item['content']:
+                item['content'] = item['content'].replace('{content}', document)
             messages.append(item)
-
+        
         extract_request = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
         # 비동기 요청
