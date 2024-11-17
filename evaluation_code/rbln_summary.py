@@ -301,6 +301,7 @@ def evaluate_model(dataset, client: OpenAI):
     file_name = f"rbln_llama_summary_scores_{file_count}.csv"
     file_path = os.path.join(directory, file_name)
     df = pd.DataFrame(scores_storage)
+    
     # 파일 저장
     df.to_csv(file_path, index=False)
     print("CSV 파일에 모든 평가 점수를 저장했습니다.")
