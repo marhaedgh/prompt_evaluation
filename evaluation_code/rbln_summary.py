@@ -241,11 +241,11 @@ def evaluate_model(dataset, client: OpenAI):
             json_data = json.load(file)
         
         messages = []
-        print(json_data)
+        print(document)
         for item in json_data:
             # content에서 {document}를 document_content로 대체
-            if '{content}' in item['content']:
-                item['content'] = item['content'].replace('{content}', document)
+            if '{document}' in item['content']:
+                item['content'] = item['content'].replace('{document}', document)
             messages.append(item)
         print("messages")
         print(messages)
@@ -294,7 +294,7 @@ def evaluate_model(dataset, client: OpenAI):
     for item in feedback_json_data:
         # content에서 {prompt}를 document_content로 대체
         if '{prompt}' in item['content']:
-            item['content'] = item['content'].replace('{prompt}', messages)
+            item['content'] = item['content'].replace('{prompt}', ', '.join(messages))
         if '{scores}' in item['content']:
             item['content'] = item['content'].replace('{scores}', scores_storage)
         if '{prompt}' in item['content']:
