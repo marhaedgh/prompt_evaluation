@@ -241,14 +241,11 @@ def evaluate_model(dataset, client: OpenAI):
             json_data = json.load(file)
         
         messages = []
-        print(document)
         for item in json_data:
             # content에서 {document}를 document_content로 대체
             if '{document}' in item['content']:
                 item['content'] = item['content'].replace('{document}', document)
             messages.append(item)
-        print("messages")
-        print(messages)
         extract_request = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
         # 비동기 요청
