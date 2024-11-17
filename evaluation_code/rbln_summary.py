@@ -257,18 +257,16 @@ def evaluate_model(dataset, client: OpenAI):
         ref_summary = extracted_info
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
-        ref_accuracy = round(ref_accuracy, 2)
-        ref_logical_consistency = round(ref_logical_consistency,2)
-        ref_concise = round(evaluate_redundancy_with_embeddings(ref_summary), 2)
-        bertscore = round(calculate_bertscore(document, ref_summary), 2)*100
-        evaluator = GPTScoreEvaluator(client.api_key)
+        ref_concise = evaluate_redundancy_with_embeddings(ref_summary)
+        bertscore = calculate_bertscore(document, ref_summary)
 
+        evaluator = GPTScoreEvaluator(client.api_key)
         GPTscore = evaluator.evaluate_summary_logprob(ref_summary, document)
         scores={}
         scores["accuracy"] = round(ref_accuracy,2)
         scores["consistency"] = round(ref_logical_consistency,2)
         scores["conciseness"] = round(ref_concise,2)
-        scores["bertscore"] = round(bertscore,2)
+        scores["bertscore"] = round(bertscore,2)*100
         for i,j in GPTscore.items():
             scores[i] = j
         scores_storage.append(scores)
