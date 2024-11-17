@@ -294,7 +294,7 @@ def evaluate_model(dataset, client: OpenAI):
     for item in feedback_json_data:
         # content에서 {prompt}를 document_content로 대체
         if '{prompt}' in item['content']:
-            item['content'] = item['content'].replace('{prompt}', ', '.join(messages))
+            item['content'] = item['content'].replace('{prompt}', ', '.join(str(msg) for msg in messages))
         if '{scores}' in item['content']:
             item['content'] = item['content'].replace('{scores}', scores_storage)
         if '{prompt}' in item['content']:
