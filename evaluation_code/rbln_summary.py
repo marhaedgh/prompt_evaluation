@@ -297,8 +297,8 @@ def evaluate_model(dataset, client: OpenAI):
     directory = f"evaluation_scores/{date_str}"
     os.makedirs(directory, exist_ok=True)
     # 파일 번호 확인 및 넘버링
-    file_count = len([f for f in os.listdir(directory) if f.startswith("GPT_summary_scores_")]) + 1
-    file_name = f"GPT_summary_scores_{file_count}.csv"
+    file_count = len([f for f in os.listdir(directory) if f.startswith("rbln_llama_summary_scores_")]) + 1
+    file_name = f"rbln_llama_summary_scores_{file_count}.csv"
     file_path = os.path.join(directory, file_name)
     df = pd.DataFrame(scores_storage)
     # 파일 저장
