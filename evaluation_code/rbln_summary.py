@@ -20,7 +20,7 @@ Settings.llm = OpenAILike(
     model="rbln_vllm_llama-3-Korean-Bllossom-8B_npu8_batch4_max8192",
     api_base="http://0.0.0.0:8000/v1",
     api_key="1234",
-    max_tokens=1024,
+    max_tokens=4096,
     is_chat_model=True
 )
 
@@ -227,7 +227,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client: OpenAI):
     measure_time_start = time.time()
 
-    epoch = 3
+    epoch = 100
     index = 0
     scores_storage = []
     while index < epoch:
@@ -250,7 +250,6 @@ def evaluate_model(dataset, client: OpenAI):
 
         # 비동기 요청
         extract_response = Settings.llm.complete(extract_request, timeout=30)
-        print(extract_response)
         # 응답 처리
         ref_summary = str(extract_response)
         # 평가 수행
@@ -297,7 +296,6 @@ def evaluate_model(dataset, client: OpenAI):
         if '{prompt}' in item['content']:
             item['content'] = item['content'].replace('{avg_score}', str(avg_integrate))
         feedback_message.append(item)
-    print("feedback prompt:", feedback_message)
     extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
     # 비동기 요청
     extract_feedback = Settings.llm.complete(extract_request, timeout=30)
@@ -316,7 +314,7 @@ def evaluate_model(dataset, client: OpenAI):
         'running_time': f"{measure_time_end:.4f}",        # 새로운 실행 시간 (예: 0초)
         'file_name': date_str + file_name,  # 새로운 파일 이름
         'feedback': extract_feedback,
-        'prompt': str(messages)   # 새로운 프롬프트 내용
+        'prompt': str(messages)   # 기존 프롬프트 내용
     }
     # 파일이 존재하고 비어 있지 않은지 확인
     if os.path.exists(graph_file_path) and os.path.getsize(graph_file_path) > 0:
