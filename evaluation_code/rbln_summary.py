@@ -1,4 +1,6 @@
 import settings 
+import json
+import time
 from openai import OpenAI
 from bert_score import score
 from datasets import load_dataset
@@ -9,8 +11,20 @@ from datetime import datetime
 import os
 import pandas as pd
 #이거부터
+from transformers import AutoTokenizer
 from llama_index.core import Settings
 from llama_index.llms.openai_like import OpenAILike
+
+# LLM 설정
+Settings.llm = OpenAILike(
+    model="rbln_vllm_llama-3-Korean-Bllossom-8B_npu8_batch4_max8192",
+    api_base="http://0.0.0.0:8000/v1",
+    api_key="1234",
+    max_tokens=1024,
+    is_chat_model=True
+)
+
+tokenizer = AutoTokenizer.from_pretrained("MLP-KTLim/llama-3-Korean-Bllossom-8B")
 
 
 # OpenAI API 키 설정
@@ -211,68 +225,36 @@ class GPTScoreEvaluator:
 
 # 8. 자동 평가 함수
 def evaluate_model(dataset, client: OpenAI):
+    measure_time_start = time.time()
+
+    epoch = 3
     index = 0
     scores_storage = []
-    while index < 100:
+    while index < epoch:
         print(index)
         item = dataset[index]
         document = item['document'] 
         evaluator = FactualConsistencyEvaluator(client)
-        Settings.llm = OpenAILike(
-            model="rbln_vllm_llama-3-Korean-Bllossom-8B_npu8_batch4_max8192",
-            api_base="http://0.0.0.0:8000/v1",
-            api_key="1234",
-            max_tokens=2048, #1024에서 좀 크게 
-            is_chat_model=True
-        )
-        messages = [
-            {"role": "system", "content": 
-"""
-*역할*
-당신은 복잡한 정보를 접근 가능하고 공감 가는 요약으로 변환하는 전문가입니다. 개인사업자를 위한 내용을 명확하고 친근한 언어로 재구성해 전달하는 것이 목표입니다. 주어진 텍스트를 체계적 사고 과정(Chain of Thought)을 통해 1000자 이내로 요약하고, 독자들에게 필요한 핵심 정보를 전달하는 것이 목적입니다.
 
-*맥락*
-목표: 텍스트를 깊이 이해하고, 개인사업자들이 관심을 가질 만한 주요 포인트를 찾아 전달하는 것
-독자: 긴 글을 간단하게 이해하고 싶어하는 '개인사업자'. 복잡한 용어를 지양하고, 쉽게 이해할 수 있는 친근한 표현을 사용
-접근 방식: 구조가 명확하고, 독자가 공감할 수 있는 어조 사용
+        json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/summarization_korean.json"
+        with open(json_path, 'r', encoding='utf-8') as file:
+            json_data = json.load(file)
 
-*절차*
-1. 텍스트 이해: 내용을 충분히 검토해 주요 아이디어, 목표, 뉘앙스를 파악합니다.
-2. 주제와 목적 확인: 텍스트의 중심 주제와 개인사업자에게 유익한 요소를 식별합니다.
-3. 키워드 추출: 내용을 요약하는 데 중요한 핵심 키워드와 개념을 선별합니다.
-4. 내용 구조화: 정보를 논리적으로 재구성하고, 단락 사이의 연결이 자연스럽도록 배치합니다.
-5. 단락 및 소제목 구성: 명확한 구조를 위해 짧은 단락과 흥미로운 소제목을 작성합니다.
-6. 어조 및 스타일 설정: 친근하고 공감 가는 어조를 유지하며, 가능한 한 쉬운 표현을 사용합니다.
-7. 요약 작성: 독자의 흥미를 끌 수 있는 요약을 작성합니다.
-8. 독자의 흥미 유발: 첫 문장을 인상 깊게 작성하여 독자의 관심을 끌고, 개인사업자에게 유용한 내용을 강조합니다.
-9. 검토 및 다듬기: 요약이 간결하고 명확하며 일관성이 있는지 검토합니다.
-10. 글자 수 및 구조 최종 확인: 요약이 1000자 이내이며 논리적 흐름을 유지하도록 조정합니다.
+        messages = []
+        for item in json_data:
+            # content에서 {document}를 document_content로 대체
+            if '{document}' in item['content']:
+                item['content'] = item['content'].replace('{document}', document)
+            messages.append(item)
 
-*지침*
-- 편안하고 친근한 어조
-- 공감 가는 표현 사용
-- 이해하기 쉬운 용어
-- 독자의 관심을 끌 만한 인상적인 첫 단락
-- 새로운 용어는 간단하게 설명
-- 1000자 이내의 글자 수 및 짧은 단락 유지"""},
-            {"role": "user", "content": f"""
-             *요청*
-1. 문서 요약을 수행할 때 독자(개인사업자)가 가장 관심을 가질 만한 포인트에 집중하세요. 
-2. 내용을 명확하게 전달하되, 독자의 흥미를 유발하기 위해 일상에서의 비유나 예시를 포함해 주세요.
-3. 중요한 정보가 구체적으로 이해될 수 있도록 관련 배경 지식을 간단히 덧붙여 주세요.
-4. 독자가 글의 내용을 통해 어떤 행동을 해야하는지 구체적으로 가이드라인을 제시해주세요.\n
-요약 텍스트: {document}
-"""
-             }
-        ]
-        
-        extract_request = Settings.llm.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        extract_request = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
         # 비동기 요청
-        extract_response = Settings.llm.acomplete(extract_request, timeout=30)
+        extract_response = Settings.llm.complete(extract_request, timeout=30)
+        print(extract_response)
         # 응답 처리
         extracted_info = str(extract_response)
-        ref_summary = extracted_info.choices[0].message.content
+        ref_summary = extracted_info
         # 평가 수행
         ref_accuracy, ref_logical_consistency = evaluator.factual_consistency_score(document, ref_summary)
         ref_accuracy = round(ref_accuracy, 2)
@@ -294,18 +276,48 @@ def evaluate_model(dataset, client: OpenAI):
     
     # 오늘 날짜로 폴더 생성
     date_str = datetime.now().strftime("%Y-%m-%d")
-    directory = f"evaluation_scores/{date_str}"
+    directory = f"/home/guest/marhaedgh/evaluation/prompt_evaluation/evaluation_scores/{date_str}"
     os.makedirs(directory, exist_ok=True)
     # 파일 번호 확인 및 넘버링
     file_count = len([f for f in os.listdir(directory) if f.startswith("rbln_llama_summary_scores_")]) + 1
     file_name = f"rbln_llama_summary_scores_{file_count}.csv"
     file_path = os.path.join(directory, file_name)
     df = pd.DataFrame(scores_storage)
-    
+    avg_row=df.apply(lambda col: col.sum()/len(col), axis=0)
+    df.loc['avg']=avg_row
+    avg_integrate=sum(avg_row)/len(avg_row)
+
     # 파일 저장
     df.to_csv(file_path, index=False)
     print("CSV 파일에 모든 평가 점수를 저장했습니다.")
 
+    measure_time_end = time.time()-measure_time_start
+
+    graph_file_path = '/home/guest/marhaedgh/evaluation/prompt_evaluation/evaluation_scores/eval_graph.csv'
+    new_data = {
+        'epoch': epoch,
+        'avg': avg_integrate,
+        'running_time': f"{measure_time_end:.4f}",        # 새로운 실행 시간 (예: 0초)
+        'file_name': date_str + file_name,  # 새로운 파일 이름
+        'prompt': str(messages)   # 새로운 프롬프트 내용
+    }
+
+    # 파일이 존재하고 비어 있지 않은지 확인
+    if os.path.exists(graph_file_path) and os.path.getsize(graph_file_path) > 0:
+        try:
+            # 기존 CSV 파일 읽기
+            df_existing = pd.read_csv(graph_file_path)
+            
+            # 기존 파일에 새로운 데이터 추가
+            df_combined = pd.concat([df_existing, pd.DataFrame([new_data])], ignore_index=True)
+        except pd.errors.EmptyDataError:
+            print("파일이 비어 있습니다. 새로운 데이터로 초기화합니다.")
+            # 파일이 비어 있을 경우, 새로운 데이터프레임 생성
+            df_combined = pd.DataFrame([new_data])
+    else:
+    # 파일이 없거나 비어 있을 경우, 새로운 데이터프레임 생성
+        df_combined = pd.DataFrame([new_data])
+    df_combined.to_csv(graph_file_path, index=False)
 
 # 9. 데이터셋 로드 및 평가 실행
 dataset = load_dataset("daekeun-ml/naver-news-summarization-ko", cache_dir='C:\\Users\\82104\\Desktop\\RAG_테크닉\\허깅페이스', split="test")
