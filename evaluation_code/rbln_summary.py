@@ -281,12 +281,15 @@ def evaluate_model(dataset, client: OpenAI):
     df = pd.DataFrame(scores_storage)
     avg_row=df.apply(lambda col: col.sum()/len(col), axis=0)
     df.loc['avg']=avg_row
-    avg_integrate=round(sum(avg_row)/len(avg_row), 2)   
+    df_avg = pd.DataFrame(columns=df.columns)
+    # 평균값을 새로운 dataframe으로 추가  
+    df_avg = df_avg.append(avg_row, ignore_index=True)
 
+    avg_integrate=round(sum(avg_row)/len(avg_row), 2)   
     # 파일 저장
     df.to_csv(file_path, index=False)
     print(file_name, "CSV 파일 저장했습니다.")
-
+    
     #feedback
     feedback_json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/feedback.json"
     with open(feedback_json_path, 'r', encoding='utf-8') as file:
@@ -299,8 +302,9 @@ def evaluate_model(dataset, client: OpenAI):
         if '{prompt}' in item['content']:
             item['content'] = item['content'].replace('{prompt}', ', '.join(str(msg) for msg in messages))
         if '{scores}' in item['content']:
-            item['content'] = item['content'].replace('{scores}', json.dumps(scores_storage, ensure_ascii=False, indent=4))
-        if '{prompt}' in item['content']:
+            df_str = df_avg.to_string(index=False)
+            item['content'] = item['content'].replace('{scores}', df_str)
+        if '{avg_score}' in item['content']:
             item['content'] = item['content'].replace('{avg_score}', str(avg_integrate))
         feedback_message.append(item)
     
