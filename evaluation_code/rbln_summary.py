@@ -14,13 +14,14 @@ import pandas as pd
 from transformers import AutoTokenizer
 from llama_index.core import Settings
 from llama_index.llms.openai_like import OpenAILike
+from transformers import AutoTokenizer
 
 # LLM 설정
 Settings.llm = OpenAILike(
     model="rbln_vllm_llama-3-Korean-Bllossom-8B_npu8_batch4_max8192",
     api_base="http://0.0.0.0:8000/v1",
     api_key="1234",
-    max_tokens=4096,
+    max_tokens=2048,
     is_chat_model=True
 )
 
@@ -227,7 +228,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client: OpenAI):
     measure_time_start = time.time()
 
-    epoch = 100
+    epoch = 3
     index = 0
     scores_storage = []
     while index < epoch:
@@ -282,6 +283,11 @@ def evaluate_model(dataset, client: OpenAI):
     df.loc['avg']=avg_row
     avg_integrate=round(sum(avg_row)/len(avg_row), 2)   
 
+    # 파일 저장
+    df.to_csv(file_path, index=False)
+    print(file_name, "CSV 파일 저장했습니다.")
+
+    #feedback
     feedback_json_path = "/home/guest/marhaedgh/marhaedgh_backend/prompt/feedback.json"
     with open(feedback_json_path, 'r', encoding='utf-8') as file:
         feedback_json_data = json.load(file)
@@ -296,15 +302,20 @@ def evaluate_model(dataset, client: OpenAI):
         if '{prompt}' in item['content']:
             item['content'] = item['content'].replace('{avg_score}', str(avg_integrate))
         feedback_message.append(item)
+    
+    tokenizer = AutoTokenizer.from_pretrained("MLP-KTLim/llama-3-Korean-Bllossom-8B")
+
+    def count_tokens(text):
+        return len(tokenizer.encode(text))
+    total_tokens = sum(count_tokens(message['content']) for message in messages)
+    print(f"총 입력 토큰 수 : {total_tokens}")
+
+
     extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
     # 비동기 요청
     extract_feedback = Settings.llm.complete(extract_request, timeout=30)
     print("feedback:",extract_feedback)
     
-    # 파일 저장
-    df.to_csv(file_path, index=False)
-    print("CSV 파일에 모든 평가 점수를 저장했습니다.")
-
     measure_time_end = time.time()-measure_time_start
 
     graph_file_path = '/home/guest/marhaedgh/evaluation/prompt_evaluation/evaluation_scores/eval_graph.csv'
