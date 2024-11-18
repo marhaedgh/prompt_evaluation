@@ -228,7 +228,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client: OpenAI):
     measure_time_start = time.time()
 
-    epoch = 5
+    epoch = 100
     index = 0
     scores_storage = []
     while index < epoch:
