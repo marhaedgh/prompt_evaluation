@@ -228,7 +228,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client: OpenAI):
     measure_time_start = time.time()
 
-    epoch = 10
+    epoch = 20
     index = 0
     scores_storage = []
     while index < epoch:
@@ -294,6 +294,7 @@ def evaluate_model(dataset, client: OpenAI):
 
     feedback_message = []
     for item in feedback_json_data:
+        print("feedback들", item)
         # content에서 {prompt}를 document_content로 대체
         if '{prompt}' in item['content']:
             item['content'] = item['content'].replace('{prompt}', ', '.join(str(msg) for msg in messages))
@@ -308,13 +309,13 @@ def evaluate_model(dataset, client: OpenAI):
     total_tokens = sum(count_tokens(message['content']) for message in feedback_message)
     print(f"총 입력 토큰 수 : {total_tokens}")
 
-
+    
     extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
     # 비동기 요청
     extract_tokens = count_tokens(extract_request)
     print(f"extract 토큰 수 : {extract_tokens}")
-
-    extract_feedback = Settings.llm.complete(extract_request, timeout=30)
+    print("왜 토큰이 커지나!:", extract_request)
+    extract_feedback = Settings.llm.complete(extract_request, timeout=60)
     print("feedback:",extract_feedback)
     
     measure_time_end = time.time()-measure_time_start
