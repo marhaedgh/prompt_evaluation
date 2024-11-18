@@ -283,7 +283,7 @@ def evaluate_model(dataset, client: OpenAI):
     df.loc['avg']=avg_row
     df_avg = pd.DataFrame(columns=df.columns)
     # 평균값을 새로운 dataframe으로 추가  
-    df_avg = df_avg.append(avg_row, ignore_index=True)
+    df_avg.loc[0] = avg_row
 
     avg_integrate=round(sum(avg_row)/len(avg_row), 2)   
     # 파일 저장
