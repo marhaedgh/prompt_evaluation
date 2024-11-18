@@ -303,8 +303,6 @@ def evaluate_model(dataset, client: OpenAI):
             item['content'] = item['content'].replace('{avg_score}', str(avg_integrate))
         feedback_message.append(item)
     
-    tokenizer = AutoTokenizer.from_pretrained("MLP-KTLim/llama-3-Korean-Bllossom-8B")
-
     def count_tokens(text):
         return len(tokenizer.encode(text))
     total_tokens = sum(count_tokens(message['content']) for message in messages)
