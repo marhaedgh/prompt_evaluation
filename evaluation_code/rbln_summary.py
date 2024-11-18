@@ -311,6 +311,9 @@ def evaluate_model(dataset, client: OpenAI):
 
     extract_request = tokenizer.apply_chat_template(feedback_message, add_generation_prompt=True, tokenize=False)
     # 비동기 요청
+    extract_tokens = count_tokens(extract_request)
+    print(f"총 입력 토큰 수 : {extract_tokens}")
+
     extract_feedback = Settings.llm.complete(extract_request, timeout=30)
     print("feedback:",extract_feedback)
     
