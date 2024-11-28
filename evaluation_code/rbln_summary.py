@@ -228,7 +228,7 @@ class GPTScoreEvaluator:
 def evaluate_model(dataset, client: OpenAI):
     measure_time_start = time.time()
 
-    epoch = 100
+    epoch =50
     index = 0
     scores_storage = []
     while index < epoch:
@@ -242,11 +242,14 @@ def evaluate_model(dataset, client: OpenAI):
             json_data = json.load(file)
         
         messages = []
-        for item in json_data:
+        
+        for item in json_data:            
             # content에서 {document}를 document_content로 대체
-            if '{document}' in item['content']:
-                item['content'] = item['content'].replace('{document}', document)
+            if '{context}' in item['content']:
+                item['content'] = item['content'].replace('{context}', document)
             messages.append(item)
+            if index==0:
+                print("content", item['content'])
         extract_request = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
         # 비동기 요청
@@ -269,7 +272,10 @@ def evaluate_model(dataset, client: OpenAI):
             scores[i] = round(j,2)
         scores_storage.append(scores)
         index += 1
-    
+        if index==1:
+            print(scores)
+            print("document", document)
+            print("ref_summary", ref_summary)
     # 오늘 날짜로 폴더 생성
     date_str = datetime.now().strftime("%Y-%m-%d")
     directory = f"/home/guest/marhaedgh/evaluation/prompt_evaluation/evaluation_scores/{date_str}"
@@ -315,7 +321,7 @@ def evaluate_model(dataset, client: OpenAI):
     # 비동기 요청
     extract_tokens = count_tokens(extract_request)
     print(f"extract 토큰 수 : {extract_tokens}")
-    extract_feedback = Settings.llm.complete(extract_request, timeout=60)
+    extract_feedback = Settings.llm.complete(extract_request, timeout=250)
     print("feedback:",extract_feedback)
     
     measure_time_end = time.time()-measure_time_start
